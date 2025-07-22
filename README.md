@@ -1,5 +1,7 @@
 # Elm Snake Game
 
+![Screenshot of Elm Snake Game](ElmSnakeGame.png)
+
 ## 1. Introduction
 
 This is a classic Snake game implemented in Elm, inspired by the version found on old Nokia phones. You control a snake that moves around a grid, eating food to grow longer. The goal is to grow your snake as long as possible without running into yourself. If you do collide with yourself, your snake will shrink by 3 segments, but the game continues—so you can keep playing and try to beat your high score!
