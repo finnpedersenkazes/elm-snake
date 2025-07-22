@@ -1,8 +1,9 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, text, button)
 import Html.Attributes exposing (style)
+import Html.Events exposing (onClick)
 import Random
 import Browser.Events
 import Json.Decode as Decode
@@ -29,12 +30,13 @@ type alias Model =
     , height : Int
     , gameOver : Bool
     , collisionWarningSteps : Int
+    , highScore : Int
     }
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     let
-        initialSnake = List.map (\i -> { x = 5 - i, y = 5 }) (List.range 0 9) -- length 10
+        initialSnake = List.map (\i -> { x = 5 - i, y = 5 }) (List.range 0 2) -- length 3
         initialDir = Right
         w = 20
         h = 20
@@ -47,8 +49,9 @@ init _ =
       , height = h
       , gameOver = False
       , collisionWarningSteps = 0
+      , highScore = 3
       }
-    , tickCmd
+    , tickCmd 3
     )
 
 -- Msg
@@ -61,14 +64,23 @@ type Msg
 
 -- Timer
 
-tickInterval : Float
--- milliseconds
+baseInterval : Float
+baseInterval = 350
 
-tickInterval = 150
+minInterval : Float
+minInterval = 80
 
-tickCmd : Cmd Msg
-tickCmd =
-    Process.sleep tickInterval
+tickInterval : Int -> Float
+tickInterval snakeLen =
+    let
+        speedup = toFloat (snakeLen - 3) * 12
+        interval = baseInterval - speedup
+    in
+    max minInterval interval
+
+tickCmd : Int -> Cmd Msg
+tickCmd snakeLen =
+    Process.sleep (tickInterval snakeLen)
         |> Task.perform (\_ -> Tick)
 
 -- Random food generator
@@ -104,24 +116,26 @@ update msg model =
                         (newHead :: model.snake, Basics.max 0 (model.collisionWarningSteps - 1))
                     else
                         (newHead :: removeLast model.snake, Basics.max 0 (model.collisionWarningSteps - 1))
+                newLength = List.length finalSnake
+                newHighScore = Basics.max model.highScore newLength
                 cmd =
                     if ateFood then
                         Random.generate NewFood (foodGenerator model.width model.height)
                     else
-                        tickCmd
+                        tickCmd newLength
             in
-            ( { model | snake = finalSnake, gameOver = collided, collisionWarningSteps = warningSteps }
+            ( { model | snake = finalSnake, gameOver = collided, collisionWarningSteps = warningSteps, highScore = newHighScore }
             , cmd
             )
-
         ChangeDir dir ->
             ( { model | dir = dir }, Cmd.none )
-
         Restart ->
-            init ()
-
+            let
+                (newModel, cmd) = init ()
+            in
+            ( { newModel | highScore = model.highScore }, cmd )
         NewFood pos ->
-            ( { model | food = pos }, tickCmd )
+            ( { model | food = pos }, tickCmd (List.length model.snake) )
 
 moveHead : Position -> Direction -> Position
 moveHead pos dir =
@@ -179,6 +193,80 @@ view model =
             case model.snake of
                 h :: _ -> Just h
                 [] -> Nothing
+        cellStyle isHead =
+            [ style "width" (String.fromInt cellSize ++ "px")
+            , style "height" (String.fromInt cellSize ++ "px")
+            , style "display" "inline-block"
+            , style "border" "1px solid #ccc"
+            , style "box-sizing" "border-box"
+            , style "border-radius" (if isHead then "4px" else "2px")
+            ]
+        titleStyle =
+            [ style "font-size" "2.2rem"
+            , style "font-weight" "bold"
+            , style "margin-bottom" "18px"
+            , style "font-family" "'Segoe UI', 'Roboto', 'Arial', sans-serif"
+            , style "letter-spacing" ".5px"
+            , style "color" "#222"
+            , style "text-align" "center"
+            ]
+        boardContainerStyle =
+            [ style "background" "#fff"
+            , style "padding" "32px 32px 24px 32px"
+            , style "border-radius" "12px"
+            , style "box-shadow" "0 4px 24px #0002"
+            , style "margin-top" "40px"
+            , style "display" "inline-block"
+            ]
+        outerContainerStyle =
+            [ style "display" "flex"
+            , style "flex-direction" "column"
+            , style "align-items" "center"
+            , style "min-height" "100vh"
+            , style "background" "#fafbfc"
+            ]
+        infoBoxStyle =
+            [ style "padding" "4px 24px"
+            , style "background" "#f5f5f5"
+            , style "border-radius" "6px"
+            , style "box-shadow" "0 1px 3px #0001"
+            , style "min-width" "180px"
+            , style "text-align" "center"
+            , style "font-family" "'Segoe UI', 'Roboto', 'Arial', sans-serif"
+            ]
+        infoStackStyle =
+            [ style "margin" "18px 0 0 0"
+            , style "font-size" "18px"
+            , style "display" "flex"
+            , style "flex-direction" "column"
+            , style "align-items" "center"
+            , style "gap" "12px"
+            , style "justify-content" "center"
+            ]
+        resetButtonStyle =
+            [ style "margin" "24px 0 0 0"
+            , style "font-size" "18px"
+            , style "padding" "10px 32px"
+            , style "background" "#2196F3"
+            , style "color" "#fff"
+            , style "border" "none"
+            , style "border-radius" "6px"
+            , style "cursor" "pointer"
+            , style "box-shadow" "0 2px 8px #2196F344"
+            , style "transition" "background 0.2s"
+            ]
+        collisionButtonStyle =
+            [ style "margin" "24px 0 0 0"
+            , style "font-size" "18px"
+            , style "padding" "10px 32px"
+            , style "background" "#e53935"
+            , style "color" "#fff"
+            , style "border" "none"
+            , style "border-radius" "6px"
+            , style "box-shadow" "0 2px 8px #e5393533"
+            , style "font-weight" "bold"
+            , style "cursor" "not-allowed"
+            ]
         renderCell x y =
             let
                 isHead =
@@ -193,33 +281,40 @@ view model =
                     else if isFood then "#e53935"
                     else "#eee"
             in
-            div
-                [ style "width" (String.fromInt cellSize ++ "px")
-                , style "height" (String.fromInt cellSize ++ "px")
-                , style "display" "inline-block"
-                , style "background-color" bgColor
-                , style "border" "1px solid #ccc"
-                , style "box-sizing" "border-box"
-                ]
-                []
+            div (cellStyle isHead ++ [style "background-color" bgColor]) []
         renderRow y =
             div [] (List.map (\x -> renderCell x y) (List.range 0 (model.width - 1)))
         lengthAndCollision =
-            div [ style "margin" "10px 0", style "font-size" "18px", style "display" "flex", style "align-items" "center", style "gap" "16px" ]
-                ([ text ("Snake length: " ++ String.fromInt (List.length model.snake)) ] ++
-                    (if model.collisionWarningSteps > 0 then
-                        [ div [ style "color" "red" ] [ text "Collision!" ] ]
-                     else
-                        []
-                    )
-                )
+            let
+                snakeLen = List.length model.snake
+                speed = 1000 / (tickInterval snakeLen)
+                speedStr = String.fromFloat (roundTo1 speed) ++ " moves/sec"
+            in
+            div infoStackStyle
+                [ div infoBoxStyle [ text ("Snake length: " ++ String.fromInt snakeLen) ]
+                , div infoBoxStyle [ text ("High score: " ++ String.fromInt model.highScore) ]
+                , div infoBoxStyle [ text ("Speed: " ++ speedStr) ]
+                ]
     in
-    div []
-        [ lengthAndCollision
-        , div [ style "user-select" "none" ]
-            (List.map renderRow (List.range 0 (model.height - 1)))
+    div outerContainerStyle
+        [ div boardContainerStyle
+            [ div titleStyle [ text "Elm Snake Game" ]
+            , div [ style "user-select" "none", style "margin-bottom" "18px" ]
+                (List.map renderRow (List.range 0 (model.height - 1)))
+            , div [ style "display" "flex", style "justify-content" "center" ]
+                [ if model.collisionWarningSteps > 0 then
+                    button (collisionButtonStyle ++ [Html.Attributes.disabled True]) [ text "Collision!" ]
+                  else
+                    button resetButtonStyle [ text "Reset" ]
+                ]
+            , lengthAndCollision
+            ]
         ]
 
 posToString : Position -> String
 posToString pos =
-    "(" ++ String.fromInt pos.x ++ "," ++ String.fromInt pos.y ++ ")" 
+    "(" ++ String.fromInt pos.x ++ "," ++ String.fromInt pos.y ++ ")"
+
+roundTo1 : Float -> Float
+roundTo1 n =
+    (toFloat (round (n * 10))) / 10 

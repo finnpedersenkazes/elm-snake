@@ -66,4 +66,10 @@ This is a classic Snake game implemented in Elm, inspired by the version found o
 - **Curiosity and willingness to experiment:** Vibe coding is about learning and building together, so being open to trying new things helps.
 - **Critical thinking:** The AI is powerful, but you should still review suggestions, test changes, and make decisions.
 
-Vibe coding with Cursor is a fun, fast, and effective way to build projects, learn new technologies, and solve problems—together! 
+Vibe coding with Cursor is a fun, fast, and effective way to build projects, learn new technologies, and solve problems—together!
+
+## Project Development Log
+
+Curious how this project was built step by step with AI? Check out the full co-development dialog:
+
+- [Project Dialog: cursor_create_a_hello_world_app_in_elm.md](cursor_create_a_hello_world_app_in_elm.md) 
