@@ -1265,7 +1265,7 @@ Let me know if this works, and we’ll move on to collision/game over logic next
 
 **User**
 
-Wow. Great. I can play the game now. The error keys work. 
+Wow. Great. I can play the game now. The arrow keys work. 
 
 ---
 
@@ -1285,7 +1285,7 @@ Great teamwork!
 
 **User**
 
-OK. So the snake gets longer each time it easy the food. Start by polishing the UI. For example, I think it would be nice to know the lenght of the snake. Then instead of a game over, I would like a collision to simply shorten the snake. I don't have any ideas about how much the snake should be shorter. Make a suggestion.
+OK. So the snake gets longer each time it easy the food. Start by polishing the UI. For example, I think it would be nice to know the length of the snake. Then instead of a game over, I would like a collision to simply shorten the snake. I don't have any ideas about how much the snake should be shorter. Make a suggestion.
 
 ---
 
@@ -1352,7 +1352,7 @@ Let me know if the length display works, and I’ll move on to the collision/sho
 
 **User**
 
-I can see the snake length which currently is 26 so it is touching itself. I don't think the collision logic is working. Write a text saying Collision so it becomes more visual and make the snake about 3/4 of its current lenght. Just to get started. 
+I can see the snake length which currently is 26 so it is touching itself. I don't think the collision logic is working. Write a text saying Collision so it becomes more visual and make the snake about 3/4 of its current length. Just to get started. 
 
 ---
 
@@ -1567,7 +1567,7 @@ Let me know if this feels right or if you want to adjust the duration or any oth
 
 **User**
 
-OK. Seems to work. I want the Collision to be on the same line as the snake lenght and the same font and size. It can be red. But otherwise it makes the game jump down. Display the collision message for longer. It is too short for the human eye to read it. 
+OK. Seems to work. I want the Collision to be on the same line as the snake length and the same font and size. It can be red. But otherwise it makes the game jump down. Display the collision message for longer. It is too short for the human eye to read it. 
 
 ---
 
@@ -1665,7 +1665,7 @@ Try it out and let me know if this feels right or if you want to tweak the appea
 
 **User**
 
-I have played it and it is nice. However, the 3/4 reduction of the snake is too hard. Simply withdraw 3 from the lenght. 
+I have played it and it is nice. However, the 3/4 reduction of the snake is too hard. Simply withdraw 3 from the length. 
 
 ---
 
@@ -1856,7 +1856,7 @@ Try it out—repeated collisions should now be handled correctly, and the warnin
 
 **User**
 
-It doesn't work as expected. If I quickly change direcation of the snake (left right left right) it will continue to collide. Make the "safe" periode longer and set the starting length to 10 until I have finished testing. 
+It doesn't work as expected. If I quickly change directionof the snake (left right left right) it will continue to collide. Make the "safe" periode longer and set the starting length to 10 until I have finished testing. 
 
 ---
 
@@ -1934,7 +1934,7 @@ Test it out and let me know if the collision handling feels right, or if you wan
 
 **User**
 
-Really good. The game now appears robust. It becomes harder over time, and the set back of the collision seems more forgiven. You cant to continue. Could we make the head of the snake blue. 
+Really good. The game now appears robust. It becomes harder over time, and the setback of the collision seems more forgiven. You cant to continue. Could we make the head of the snake blue. 
 
 ---
 
@@ -2301,7 +2301,7 @@ If you want to adjust the placement, add a caption, or include more images, just
 
 **User**
 
-I have exported our dialog and added it to the project so that people can see how we co-developered the project. I would like you to add a link to that file in the Readme. 
+I have exported our dialog and added it to the project so that people can see how we co-developed the project. I would like you to add a link to that file in the Readme. 
 
 ---
 
@@ -2735,7 +2735,7 @@ Let me know if you want any further adjustments!
 
 **User**
 
-I have a small US issue. When the collision message appears it makes the board width change. That is disturbing. What about presenting the collision message in the place of the Reset button. As a button that you cannot click with the color Red. 
+I have a small UX issue. When the collision message appears it makes the board width change. That is disturbing. What about presenting the collision message in the place of the Reset button. As a button that you cannot click with the color Red. 
 
 ---
 
@@ -2944,7 +2944,7 @@ Let me know if you like this display or want to adjust the format or placement!
 
 **User**
 
-We need a better way for presenting Snake lenght, High score and speed. With the speed it becomes too wide
+We need a better way for presenting Snake length, High score and speed. With the speed it becomes too wide
 
 ---
 
