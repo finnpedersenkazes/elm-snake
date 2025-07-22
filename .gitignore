@@ -1,0 +1,5 @@
+# Ignore Elm package/dependency directory
+elm-stuff/ 
+
+# Desktop Services Store on macOS
+.DS_Store
