@@ -13,9 +13,11 @@ This is a classic Snake game implemented in Elm, inspired by the version found o
 - The snake wraps around the grid edges.
 - The blue square is the head of the snake.
 
-> To play the game, you can simply copy the index.html file to your computer and run it in your favorite browser. All you need is there. Nothing to install. 
-
 ## 2. Getting Started
+
+**To play the game**, you can simply copy the index.html file to your computer and run it in your favorite browser. All you need is there. Nothing to install. 
+
+If you want **to run the code** yourself, then continue here. 
 
 ### Prerequisites
 - [Elm](https://guide.elm-lang.org/install/elm.html) (version 0.19 or later)
