@@ -23,6 +23,11 @@ type Direction
     | Left
     | Right
 
+-- Add DeviceMode type
+
+type DeviceMode = Mobile | PC
+
+-- Add deviceMode to Model
 type alias Model =
     { snake : List Position
     , dir : Direction
@@ -35,15 +40,17 @@ type alias Model =
     , paused : Bool
     , viewportWidth : Int
     , viewportHeight : Int
+    , deviceMode : DeviceMode
     }
 
+-- Default to Mobile in init
 init : () -> ( Model, Cmd Msg )
 init _ =
     let
-        initialSnake = List.map (\i -> { x = 5 - i, y = 5 }) (List.range 0 2) -- length 3
+        initialSnake = List.map (\i -> { x = 5 - i, y = 5 }) (List.range 0 2)
         initialDir = Right
-        w = 15
-        h = 15
+        w = 12
+        h = 20
         initialFood = { x = 7, y = 7 }
     in
     ( { snake = initialSnake
@@ -57,6 +64,7 @@ init _ =
       , paused = False
       , viewportWidth = 360
       , viewportHeight = 640
+      , deviceMode = Mobile
       }
     , Browser.Dom.getViewport |> Task.perform (\vp -> GotViewport (round vp.viewport.width) (round vp.viewport.height))
     )
@@ -71,6 +79,7 @@ type Msg
     | PauseResume
     | GotViewport Int Int
     | WindowResized Int Int
+    | SetDeviceMode DeviceMode
 
 -- Timer
 
@@ -111,7 +120,7 @@ update msg model =
                     newHead =
                         case model.snake of
                             h :: _ ->
-                                moveHead h model.dir
+                                moveHead model.width model.height h model.dir
                             [] ->
                                 { x = 0, y = 0 }
                     ateFood = newHead.x == model.food.x && newHead.y == model.food.y
@@ -153,28 +162,46 @@ update msg model =
             ( { model | paused = not model.paused }, Cmd.none )
         GotViewport w h ->
             let
-                reservedSpace = 220
-                boardPx = Basics.min w (h - reservedSpace)
-                gridSize =
-                    if boardPx < 320 then 12 else if boardPx < 480 then 15 else 20
-                newModel = { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }
+                minCellPx = 18
+                autoMode = if w < 700 then Mobile else PC
+                (maxW, maxH) =
+                    case autoMode of
+                        Mobile -> (15, 20)
+                        PC -> (20, 20)
+                width = Basics.min maxW (w // minCellPx)
+                height = Basics.min maxH ((h - 220) // minCellPx)
+                newModel = { model | viewportWidth = w, viewportHeight = h, width = width, height = height, deviceMode = autoMode }
             in
             ( newModel, tickCmd (List.length newModel.snake) )
         WindowResized w h ->
             let
-                reservedSpace = 220
-                boardPx = Basics.min w (h - reservedSpace)
-                gridSize =
-                    if boardPx < 320 then 12 else if boardPx < 480 then 15 else 20
-                newModel = { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }
+                minCellPx = 18
+                autoMode = if w < 700 then Mobile else PC
+                (maxW, maxH) =
+                    case autoMode of
+                        Mobile -> (15, 20)
+                        PC -> (20, 20)
+                width = Basics.min maxW (w // minCellPx)
+                height = Basics.min maxH ((h - 220) // minCellPx)
+                newModel = { model | viewportWidth = w, viewportHeight = h, width = width, height = height, deviceMode = autoMode }
             in
             ( newModel, tickCmd (List.length newModel.snake) )
+        SetDeviceMode mode ->
+            let
+                minCellPx = 18
+                (maxW, maxH) =
+                    case mode of
+                        Mobile -> (15, 20)
+                        PC -> (20, 20)
+                width = Basics.min maxW (model.viewportWidth // minCellPx)
+                height = Basics.min maxH ((model.viewportHeight - 220) // minCellPx)
+            in
+            ( { model | deviceMode = mode, width = width, height = height }, Cmd.none )
 
-moveHead : Position -> Direction -> Position
-moveHead pos dir =
+-- Change moveHead to take width and height as arguments
+moveHead : Int -> Int -> Position -> Direction -> Position
+moveHead w h pos dir =
     let
-        w = 20 -- grid width, should match model.width
-        h = 20 -- grid height, should match model.height
         newPos =
             case dir of
                 Up -> { pos | y = pos.y - 1 }
@@ -194,8 +221,9 @@ removeLast xs =
 
 type ButtonType = PauseBtn | ResetBtn | NavBtn Direction
 
-buttonStyle : Model -> ButtonType -> List (Html.Attribute msg)
-buttonStyle model btnType =
+-- Update buttonStyle to take a Bool for disabled
+buttonStyle : Model -> ButtonType -> Bool -> List (Html.Attribute msg)
+buttonStyle model btnType disabled =
     let
         base =
             [ style "width" "220px"
@@ -205,11 +233,9 @@ buttonStyle model btnType =
             , style "border" "2px solid #bbb"
             , style "border-radius" "20px"
             , style "box-shadow" "0 3px 8px #0001"
-            , style "cursor" "pointer"
+            , style "cursor" (if disabled then "not-allowed" else "pointer")
             , style "user-select" "none"
             , style "touch-action" "manipulation"
-            , style "background" "#f5f5f5"
-            , style "color" "#222"
             ]
     in
         case btnType of
@@ -220,8 +246,8 @@ buttonStyle model btnType =
                     ]
             ResetBtn ->
                 base ++
-                    [ style "background" "#2196F3"
-                    , style "color" "#fff"
+                    [ style "background" (if disabled then "#bbb" else "#2196F3")
+                    , style "color" (if disabled then "#888" else "#fff")
                     ]
             NavBtn dir ->
                 base ++
@@ -272,8 +298,8 @@ view : Model -> Html Msg
 view model =
     let
         reservedSpace = 220
-        boardPx = Basics.min model.viewportWidth (model.viewportHeight - reservedSpace)
-        gridSize = model.width -- width == height
+        boardPx = model.viewportWidth
+        gridSize = model.width
         cellSizeVal = boardPx // gridSize
         headPos =
             case model.snake of
@@ -351,13 +377,14 @@ view model =
         containerStyle =
             [ style "min-height" "100vh"
             , style "width" "100vw"
+            , style "max-width" "100vw"
             , style "display" "flex"
             , style "flex-direction" "column"
-            , style "align-items" "center"
             , style "justify-content" "flex-start"
             , style "background" "#fff"
             , style "box-sizing" "border-box"
-            , style "padding" "0.2rem"
+            , style "padding" "0"
+            , style "margin" "0"
             , style "font-family" "'Segoe UI', 'Roboto', 'Arial', sans-serif"
             ]
 
@@ -469,22 +496,22 @@ view model =
     in
     div containerStyle
         [ div headerStyle [ text "Elm Snake Game" ]
-        , div gameBoardStyle
+        , div [ style "width" "100vw", style "max-width" "100vw", style "margin" "0", style "padding" "0" ]
             [ div [ style "user-select" "none" ] (List.map renderRow (List.range 0 (gridSize - 1))) ]
         , div controlsStyle
             [ div navGridStyle
                 [ div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "1" ])
-                    [ button (buttonStyle model PauseBtn ++ [onClick PauseResume]) [ text pauseSymbol ] ]
+                    [ button (buttonStyle model PauseBtn model.paused ++ [onClick PauseResume]) [ text pauseSymbol ] ]
                 , div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "2" ])
-                    [ button (buttonStyle model (NavBtn Up) ++ [onClick (ChangeDir Up)]) [ text "↑" ] ]
+                    [ button (buttonStyle model (NavBtn Up) (model.dir == Up) ++ [onClick (ChangeDir Up)]) [ text "↑" ] ]
                 , div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "3" ])
-                    [ button (buttonStyle model ResetBtn ++ [onClick Restart]) [ text resetSymbol ] ]
+                    [ button (buttonStyle model ResetBtn (not model.paused) ++ [ Html.Attributes.disabled (not model.paused), onClick Restart ]) [ text resetSymbol ] ]
                 , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "1" ])
-                    [ button (buttonStyle model (NavBtn Left) ++ [onClick (ChangeDir Left)]) [ text "←" ] ]
+                    [ button (buttonStyle model (NavBtn Left) (model.dir == Left) ++ [onClick (ChangeDir Left)]) [ text "←" ] ]
                 , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "2" ])
-                    [ button (buttonStyle model (NavBtn Down) ++ [onClick (ChangeDir Down)]) [ text "↓" ] ]
+                    [ button (buttonStyle model (NavBtn Down) (model.dir == Down) ++ [onClick (ChangeDir Down)]) [ text "↓" ] ]
                 , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "3" ])
-                    [ button (buttonStyle model (NavBtn Right) ++ [onClick (ChangeDir Right)]) [ text "→" ] ]
+                    [ button (buttonStyle model (NavBtn Right) (model.dir == Right) ++ [onClick (ChangeDir Right)]) [ text "→" ] ]
                 ]
             , if model.collisionWarningSteps > 0 then
                 div [ style "display" "flex", style "justify-content" "center", style "margin-top" "8px" ]
@@ -497,6 +524,11 @@ view model =
             , div infoBoxStyleAdaptive [ text ("High score: " ++ String.fromInt model.highScore) ]
             , let speed = 1000 / (tickInterval (List.length model.snake)) in
                 div infoBoxStyleAdaptive [ text ("Speed: " ++ String.fromFloat (roundTo1 speed) ++ " moves/sec") ]
+            , div infoBoxStyleAdaptive [ text ("Screen: " ++ String.fromInt model.viewportWidth ++ " x " ++ String.fromInt model.viewportHeight) ]
+            ]
+        , div [ style "display" "flex", style "justify-content" "center", style "margin" "2rem 0 1.5rem 0", style "width" "100%" ]
+            [ button (buttonStyle model ResetBtn False ++ [ style "width" "100%", style "max-width" "600px", onClick (SetDeviceMode (if model.deviceMode == Mobile then PC else Mobile)) ])
+                [ text (if model.deviceMode == Mobile then "Switch to PC mode" else "Switch to Mobile mode") ]
             ]
         ]
 

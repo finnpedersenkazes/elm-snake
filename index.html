@@ -5260,11 +5260,12 @@ var $author$project$Main$GotViewport = F2(
 	function (a, b) {
 		return {$: 'GotViewport', a: a, b: b};
 	});
+var $author$project$Main$Mobile = {$: 'Mobile'};
 var $author$project$Main$Right = {$: 'Right'};
 var $elm$browser$Browser$Dom$getViewport = _Browser_withWindow(_Browser_getViewport);
 var $elm$core$Basics$round = _Basics_round;
 var $author$project$Main$init = function (_v0) {
-	var w = 15;
+	var w = 12;
 	var initialSnake = A2(
 		$elm$core$List$map,
 		function (i) {
@@ -5273,9 +5274,9 @@ var $author$project$Main$init = function (_v0) {
 		A2($elm$core$List$range, 0, 2));
 	var initialFood = {x: 7, y: 7};
 	var initialDir = $author$project$Main$Right;
-	var h = 15;
+	var h = 20;
 	return _Utils_Tuple2(
-		{collisionWarningSteps: 0, dir: initialDir, food: initialFood, gameOver: false, height: h, highScore: 3, paused: false, snake: initialSnake, viewportHeight: 640, viewportWidth: 360, width: w},
+		{collisionWarningSteps: 0, deviceMode: $author$project$Main$Mobile, dir: initialDir, food: initialFood, gameOver: false, height: h, highScore: 3, paused: false, snake: initialSnake, viewportHeight: 640, viewportWidth: 360, width: w},
 		A2(
 			$elm$core$Task$perform,
 			function (vp) {
@@ -5757,6 +5758,7 @@ var $author$project$Main$subscriptions = function (_v0) {
 var $author$project$Main$NewFood = function (a) {
 	return {$: 'NewFood', a: a};
 };
+var $author$project$Main$PC = {$: 'PC'};
 var $elm$core$List$any = F2(
 	function (isOkay, list) {
 		any:
@@ -5961,9 +5963,8 @@ var $elm$core$Basics$min = F2(
 		return (_Utils_cmp(x, y) < 0) ? x : y;
 	});
 var $elm$core$Basics$modBy = _Basics_modBy;
-var $author$project$Main$moveHead = F2(
-	function (pos, dir) {
-		var w = 20;
+var $author$project$Main$moveHead = F4(
+	function (w, h, pos, dir) {
 		var newPos = function () {
 			switch (dir.$) {
 				case 'Up':
@@ -5984,7 +5985,6 @@ var $author$project$Main$moveHead = F2(
 						{x: pos.x + 1});
 			}
 		}();
-		var h = 20;
 		return {
 			x: A2($elm$core$Basics$modBy, w, newPos.x + w),
 			y: A2($elm$core$Basics$modBy, h, newPos.y + h)
@@ -6177,7 +6177,7 @@ var $author$project$Main$update = F2(
 						var _v2 = model.snake;
 						if (_v2.b) {
 							var h = _v2.a;
-							return A2($author$project$Main$moveHead, h, model.dir);
+							return A4($author$project$Main$moveHead, model.width, model.height, h, model.dir);
 						} else {
 							return {x: 0, y: 0};
 						}
@@ -6263,29 +6263,68 @@ var $author$project$Main$update = F2(
 			case 'GotViewport':
 				var w = msg.a;
 				var h = msg.b;
-				var reservedSpace = 220;
-				var boardPx = A2($elm$core$Basics$min, w, h - reservedSpace);
-				var gridSize = (boardPx < 320) ? 12 : ((boardPx < 480) ? 15 : 20);
+				var minCellPx = 18;
+				var autoMode = (w < 700) ? $author$project$Main$Mobile : $author$project$Main$PC;
+				var _v4 = function () {
+					if (autoMode.$ === 'Mobile') {
+						return _Utils_Tuple2(15, 20);
+					} else {
+						return _Utils_Tuple2(20, 20);
+					}
+				}();
+				var maxW = _v4.a;
+				var maxH = _v4.b;
+				var height = A2($elm$core$Basics$min, maxH, ((h - 220) / minCellPx) | 0);
+				var width = A2($elm$core$Basics$min, maxW, (w / minCellPx) | 0);
 				var newModel = _Utils_update(
 					model,
-					{height: gridSize, viewportHeight: h, viewportWidth: w, width: gridSize});
+					{deviceMode: autoMode, height: height, viewportHeight: h, viewportWidth: w, width: width});
+				return _Utils_Tuple2(
+					newModel,
+					$author$project$Main$tickCmd(
+						$elm$core$List$length(newModel.snake)));
+			case 'WindowResized':
+				var w = msg.a;
+				var h = msg.b;
+				var minCellPx = 18;
+				var autoMode = (w < 700) ? $author$project$Main$Mobile : $author$project$Main$PC;
+				var _v6 = function () {
+					if (autoMode.$ === 'Mobile') {
+						return _Utils_Tuple2(15, 20);
+					} else {
+						return _Utils_Tuple2(20, 20);
+					}
+				}();
+				var maxW = _v6.a;
+				var maxH = _v6.b;
+				var height = A2($elm$core$Basics$min, maxH, ((h - 220) / minCellPx) | 0);
+				var width = A2($elm$core$Basics$min, maxW, (w / minCellPx) | 0);
+				var newModel = _Utils_update(
+					model,
+					{deviceMode: autoMode, height: height, viewportHeight: h, viewportWidth: w, width: width});
 				return _Utils_Tuple2(
 					newModel,
 					$author$project$Main$tickCmd(
 						$elm$core$List$length(newModel.snake)));
 			default:
-				var w = msg.a;
-				var h = msg.b;
-				var reservedSpace = 220;
-				var boardPx = A2($elm$core$Basics$min, w, h - reservedSpace);
-				var gridSize = (boardPx < 320) ? 12 : ((boardPx < 480) ? 15 : 20);
-				var newModel = _Utils_update(
-					model,
-					{height: gridSize, viewportHeight: h, viewportWidth: w, width: gridSize});
+				var mode = msg.a;
+				var minCellPx = 18;
+				var _v8 = function () {
+					if (mode.$ === 'Mobile') {
+						return _Utils_Tuple2(15, 20);
+					} else {
+						return _Utils_Tuple2(20, 20);
+					}
+				}();
+				var maxW = _v8.a;
+				var maxH = _v8.b;
+				var height = A2($elm$core$Basics$min, maxH, ((model.viewportHeight - 220) / minCellPx) | 0);
+				var width = A2($elm$core$Basics$min, maxW, (model.viewportWidth / minCellPx) | 0);
 				return _Utils_Tuple2(
-					newModel,
-					$author$project$Main$tickCmd(
-						$elm$core$List$length(newModel.snake)));
+					_Utils_update(
+						model,
+						{deviceMode: mode, height: height, width: width}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Main$NavBtn = function (a) {
@@ -6294,11 +6333,14 @@ var $author$project$Main$NavBtn = function (a) {
 var $author$project$Main$PauseBtn = {$: 'PauseBtn'};
 var $author$project$Main$ResetBtn = {$: 'ResetBtn'};
 var $author$project$Main$Restart = {$: 'Restart'};
+var $author$project$Main$SetDeviceMode = function (a) {
+	return {$: 'SetDeviceMode', a: a};
+};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $author$project$Main$buttonStyle = F2(
-	function (model, btnType) {
+var $author$project$Main$buttonStyle = F3(
+	function (model, btnType, disabled) {
 		var base = _List_fromArray(
 			[
 				A2($elm$html$Html$Attributes$style, 'width', '220px'),
@@ -6308,11 +6350,12 @@ var $author$project$Main$buttonStyle = F2(
 				A2($elm$html$Html$Attributes$style, 'border', '2px solid #bbb'),
 				A2($elm$html$Html$Attributes$style, 'border-radius', '20px'),
 				A2($elm$html$Html$Attributes$style, 'box-shadow', '0 3px 8px #0001'),
-				A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'cursor',
+				disabled ? 'not-allowed' : 'pointer'),
 				A2($elm$html$Html$Attributes$style, 'user-select', 'none'),
-				A2($elm$html$Html$Attributes$style, 'touch-action', 'manipulation'),
-				A2($elm$html$Html$Attributes$style, 'background', '#f5f5f5'),
-				A2($elm$html$Html$Attributes$style, 'color', '#222')
+				A2($elm$html$Html$Attributes$style, 'touch-action', 'manipulation')
 			]);
 		switch (btnType.$) {
 			case 'PauseBtn':
@@ -6331,8 +6374,14 @@ var $author$project$Main$buttonStyle = F2(
 					base,
 					_List_fromArray(
 						[
-							A2($elm$html$Html$Attributes$style, 'background', '#2196F3'),
-							A2($elm$html$Html$Attributes$style, 'color', '#fff')
+							A2(
+							$elm$html$Html$Attributes$style,
+							'background',
+							disabled ? '#bbb' : '#2196F3'),
+							A2(
+							$elm$html$Html$Attributes$style,
+							'color',
+							disabled ? '#888' : '#fff')
 						]));
 			default:
 				var dir = btnType.a;
@@ -6575,13 +6624,14 @@ var $author$project$Main$view = function (model) {
 		[
 			A2($elm$html$Html$Attributes$style, 'min-height', '100vh'),
 			A2($elm$html$Html$Attributes$style, 'width', '100vw'),
+			A2($elm$html$Html$Attributes$style, 'max-width', '100vw'),
 			A2($elm$html$Html$Attributes$style, 'display', 'flex'),
 			A2($elm$html$Html$Attributes$style, 'flex-direction', 'column'),
-			A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
 			A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
 			A2($elm$html$Html$Attributes$style, 'background', '#fff'),
 			A2($elm$html$Html$Attributes$style, 'box-sizing', 'border-box'),
-			A2($elm$html$Html$Attributes$style, 'padding', '0.2rem'),
+			A2($elm$html$Html$Attributes$style, 'padding', '0'),
+			A2($elm$html$Html$Attributes$style, 'margin', '0'),
 			A2($elm$html$Html$Attributes$style, 'font-family', '\'Segoe UI\', \'Roboto\', \'Arial\', sans-serif')
 		]);
 	var collisionButtonStyle = _List_fromArray(
@@ -6597,7 +6647,7 @@ var $author$project$Main$view = function (model) {
 			A2($elm$html$Html$Attributes$style, 'font-weight', 'bold'),
 			A2($elm$html$Html$Attributes$style, 'cursor', 'not-allowed')
 		]);
-	var boardPx = A2($elm$core$Basics$min, model.viewportWidth, model.viewportHeight - reservedSpace);
+	var boardPx = model.viewportWidth;
 	var cellSizeVal = (boardPx / gridSize) | 0;
 	var cellStyle = function (isHead) {
 		return _List_fromArray(
@@ -6697,7 +6747,13 @@ var $author$project$Main$view = function (model) {
 					])),
 				A2(
 				$elm$html$Html$div,
-				gameBoardStyle,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'width', '100vw'),
+						A2($elm$html$Html$Attributes$style, 'max-width', '100vw'),
+						A2($elm$html$Html$Attributes$style, 'margin', '0'),
+						A2($elm$html$Html$Attributes$style, 'padding', '0')
+					]),
 				_List_fromArray(
 					[
 						A2(
@@ -6735,7 +6791,7 @@ var $author$project$Main$view = function (model) {
 										A2(
 										$elm$html$Html$button,
 										_Utils_ap(
-											A2($author$project$Main$buttonStyle, model, $author$project$Main$PauseBtn),
+											A3($author$project$Main$buttonStyle, model, $author$project$Main$PauseBtn, model.paused),
 											_List_fromArray(
 												[
 													$elm$html$Html$Events$onClick($author$project$Main$PauseResume)
@@ -6759,10 +6815,11 @@ var $author$project$Main$view = function (model) {
 										A2(
 										$elm$html$Html$button,
 										_Utils_ap(
-											A2(
+											A3(
 												$author$project$Main$buttonStyle,
 												model,
-												$author$project$Main$NavBtn($author$project$Main$Up)),
+												$author$project$Main$NavBtn($author$project$Main$Up),
+												_Utils_eq(model.dir, $author$project$Main$Up)),
 											_List_fromArray(
 												[
 													$elm$html$Html$Events$onClick(
@@ -6787,9 +6844,10 @@ var $author$project$Main$view = function (model) {
 										A2(
 										$elm$html$Html$button,
 										_Utils_ap(
-											A2($author$project$Main$buttonStyle, model, $author$project$Main$ResetBtn),
+											A3($author$project$Main$buttonStyle, model, $author$project$Main$ResetBtn, !model.paused),
 											_List_fromArray(
 												[
+													$elm$html$Html$Attributes$disabled(!model.paused),
 													$elm$html$Html$Events$onClick($author$project$Main$Restart)
 												])),
 										_List_fromArray(
@@ -6811,10 +6869,11 @@ var $author$project$Main$view = function (model) {
 										A2(
 										$elm$html$Html$button,
 										_Utils_ap(
-											A2(
+											A3(
 												$author$project$Main$buttonStyle,
 												model,
-												$author$project$Main$NavBtn($author$project$Main$Left)),
+												$author$project$Main$NavBtn($author$project$Main$Left),
+												_Utils_eq(model.dir, $author$project$Main$Left)),
 											_List_fromArray(
 												[
 													$elm$html$Html$Events$onClick(
@@ -6839,10 +6898,11 @@ var $author$project$Main$view = function (model) {
 										A2(
 										$elm$html$Html$button,
 										_Utils_ap(
-											A2(
+											A3(
 												$author$project$Main$buttonStyle,
 												model,
-												$author$project$Main$NavBtn($author$project$Main$Down)),
+												$author$project$Main$NavBtn($author$project$Main$Down),
+												_Utils_eq(model.dir, $author$project$Main$Down)),
 											_List_fromArray(
 												[
 													$elm$html$Html$Events$onClick(
@@ -6867,10 +6927,11 @@ var $author$project$Main$view = function (model) {
 										A2(
 										$elm$html$Html$button,
 										_Utils_ap(
-											A2(
+											A3(
 												$author$project$Main$buttonStyle,
 												model,
-												$author$project$Main$NavBtn($author$project$Main$Right)),
+												$author$project$Main$NavBtn($author$project$Main$Right),
+												_Utils_eq(model.dir, $author$project$Main$Right)),
 											_List_fromArray(
 												[
 													$elm$html$Html$Events$onClick(
@@ -6940,7 +7001,44 @@ var $author$project$Main$view = function (model) {
 									'Speed: ' + ($elm$core$String$fromFloat(
 										$author$project$Main$roundTo1(speed)) + ' moves/sec'))
 								]));
-					}()
+					}(),
+						A2(
+						$elm$html$Html$div,
+						infoBoxStyleAdaptive,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'Screen: ' + ($elm$core$String$fromInt(model.viewportWidth) + (' x ' + $elm$core$String$fromInt(model.viewportHeight))))
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'justify-content', 'center'),
+						A2($elm$html$Html$Attributes$style, 'margin', '2rem 0 1.5rem 0'),
+						A2($elm$html$Html$Attributes$style, 'width', '100%')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						_Utils_ap(
+							A3($author$project$Main$buttonStyle, model, $author$project$Main$ResetBtn, false),
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'width', '100%'),
+									A2($elm$html$Html$Attributes$style, 'max-width', '600px'),
+									$elm$html$Html$Events$onClick(
+									$author$project$Main$SetDeviceMode(
+										_Utils_eq(model.deviceMode, $author$project$Main$Mobile) ? $author$project$Main$PC : $author$project$Main$Mobile))
+								])),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								_Utils_eq(model.deviceMode, $author$project$Main$Mobile) ? 'Switch to PC mode' : 'Switch to Mobile mode')
+							]))
 					]))
 			]));
 };
