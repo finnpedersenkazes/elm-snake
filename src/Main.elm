@@ -157,16 +157,18 @@ update msg model =
                 boardPx = Basics.min w (h - reservedSpace)
                 gridSize =
                     if boardPx < 320 then 12 else if boardPx < 480 then 15 else 20
+                newModel = { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }
             in
-            ( { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }, Cmd.none )
+            ( newModel, tickCmd (List.length newModel.snake) )
         WindowResized w h ->
             let
                 reservedSpace = 220
                 boardPx = Basics.min w (h - reservedSpace)
                 gridSize =
                     if boardPx < 320 then 12 else if boardPx < 480 then 15 else 20
+                newModel = { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }
             in
-            ( { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }, Cmd.none )
+            ( newModel, tickCmd (List.length newModel.snake) )
 
 moveHead : Position -> Direction -> Position
 moveHead pos dir =
@@ -454,8 +456,8 @@ view model =
         fontSize =
             let
                 px = toFloat model.viewportWidth
-                -- scale between 1.1rem (320px) and 2.2rem (600px+)
-                scaled = 1.1 + ((min px 600 - 320) / 280) * (maxFont - minFont)
+                pxClamped = Basics.max 320 (Basics.min (round px) 600)
+                scaled = minFont + ((toFloat (pxClamped - 320)) / 280) * (maxFont - minFont)
             in
             String.fromFloat (Basics.clamp minFont maxFont scaled) ++ "rem"
         infoBoxStyleAdaptive = infoBoxStyle ++ [ style "font-size" fontSize ]

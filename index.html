@@ -6266,22 +6266,26 @@ var $author$project$Main$update = F2(
 				var reservedSpace = 220;
 				var boardPx = A2($elm$core$Basics$min, w, h - reservedSpace);
 				var gridSize = (boardPx < 320) ? 12 : ((boardPx < 480) ? 15 : 20);
+				var newModel = _Utils_update(
+					model,
+					{height: gridSize, viewportHeight: h, viewportWidth: w, width: gridSize});
 				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{height: gridSize, viewportHeight: h, viewportWidth: w, width: gridSize}),
-					$elm$core$Platform$Cmd$none);
+					newModel,
+					$author$project$Main$tickCmd(
+						$elm$core$List$length(newModel.snake)));
 			default:
 				var w = msg.a;
 				var h = msg.b;
 				var reservedSpace = 220;
 				var boardPx = A2($elm$core$Basics$min, w, h - reservedSpace);
 				var gridSize = (boardPx < 320) ? 12 : ((boardPx < 480) ? 15 : 20);
+				var newModel = _Utils_update(
+					model,
+					{height: gridSize, viewportHeight: h, viewportWidth: w, width: gridSize});
 				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{height: gridSize, viewportHeight: h, viewportWidth: w, width: gridSize}),
-					$elm$core$Platform$Cmd$none);
+					newModel,
+					$author$project$Main$tickCmd(
+						$elm$core$List$length(newModel.snake)));
 		}
 	});
 var $author$project$Main$NavBtn = function (a) {
@@ -6538,7 +6542,14 @@ var $author$project$Main$view = function (model) {
 	var gridSize = model.width;
 	var fontSize = function () {
 		var px = model.viewportWidth;
-		var scaled = 1.1 + (((A2($elm$core$Basics$min, px, 600) - 320) / 280) * (maxFont - minFont));
+		var pxClamped = A2(
+			$elm$core$Basics$max,
+			320,
+			A2(
+				$elm$core$Basics$min,
+				$elm$core$Basics$round(px),
+				600));
+		var scaled = minFont + (((pxClamped - 320) / 280) * (maxFont - minFont));
 		return $elm$core$String$fromFloat(
 			A3($elm$core$Basics$clamp, minFont, maxFont, scaled)) + 'rem';
 	}();
