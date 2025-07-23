@@ -311,21 +311,23 @@ view model =
             ]
         infoBoxStyle =
             [ style "background" "#f5f5f5"
-            , style "border-radius" "6px"
-            , style "box-shadow" "0 1px 3px #0001"
-            , style "padding" "0.5rem 1rem"
+            , style "border-radius" "18px"
+            , style "box-shadow" "0 1px 6px #0001"
+            , style "padding" "1.1rem 1.5rem"
             , style "width" "100%"
             , style "text-align" "center"
-            , style "font-size" "1rem"
+            , style "font-size" "1.35rem"
+            , style "margin-bottom" "1.1rem"
+            , style "font-weight" "500"
             ]
 
         infoStackStyle =
             [ style "width" "100%"
             , style "max-width" "600px"
-            , style "margin" "2rem auto 0 auto"
+            , style "margin" "2.5rem auto 0 auto"
             , style "display" "flex"
             , style "flex-direction" "column"
-            , style "gap" "0.3rem"
+            , style "gap" "1.1rem"
             , style "align-items" "center"
             ]
 
