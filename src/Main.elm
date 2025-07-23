@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Html exposing (Html, div, text, button)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (style, class)
 import Html.Events exposing (onClick, on)
 import Random
 import Browser.Events
@@ -10,6 +10,7 @@ import Json.Decode as Decode
 import Process
 import Task
 import Basics exposing (modBy)
+import Browser.Dom
 
 -- Types
 
@@ -32,6 +33,8 @@ type alias Model =
     , collisionWarningSteps : Int
     , highScore : Int
     , paused : Bool
+    , viewportWidth : Int
+    , viewportHeight : Int
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -39,9 +42,9 @@ init _ =
     let
         initialSnake = List.map (\i -> { x = 5 - i, y = 5 }) (List.range 0 2) -- length 3
         initialDir = Right
-        w = 20
-        h = 20
-        initialFood = { x = 10, y = 10 }
+        w = 15
+        h = 15
+        initialFood = { x = 7, y = 7 }
     in
     ( { snake = initialSnake
       , dir = initialDir
@@ -52,8 +55,10 @@ init _ =
       , collisionWarningSteps = 0
       , highScore = 3
       , paused = False
+      , viewportWidth = 360
+      , viewportHeight = 640
       }
-    , tickCmd 3
+    , Browser.Dom.getViewport |> Task.perform (\vp -> GotViewport (round vp.viewport.width) (round vp.viewport.height))
     )
 
 -- Msg
@@ -64,6 +69,8 @@ type Msg
     | Restart
     | NewFood Position
     | PauseResume
+    | GotViewport Int Int
+    | WindowResized Int Int
 
 -- Timer
 
@@ -144,6 +151,22 @@ update msg model =
             ( { model | food = pos }, tickCmd (List.length model.snake) )
         PauseResume ->
             ( { model | paused = not model.paused }, Cmd.none )
+        GotViewport w h ->
+            let
+                reservedSpace = 220
+                boardPx = Basics.min w (h - reservedSpace)
+                gridSize =
+                    if boardPx < 320 then 12 else if boardPx < 480 then 15 else 20
+            in
+            ( { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }, Cmd.none )
+        WindowResized w h ->
+            let
+                reservedSpace = 220
+                boardPx = Basics.min w (h - reservedSpace)
+                gridSize =
+                    if boardPx < 320 then 12 else if boardPx < 480 then 15 else 20
+            in
+            ( { model | viewportWidth = w, viewportHeight = h, width = gridSize, height = gridSize }, Cmd.none )
 
 moveHead : Position -> Direction -> Position
 moveHead pos dir =
@@ -173,13 +196,13 @@ buttonStyle : Model -> ButtonType -> List (Html.Attribute msg)
 buttonStyle model btnType =
     let
         base =
-            [ style "width" "48px"
-            , style "height" "48px"
-            , style "margin" "4px"
-            , style "font-size" "2rem"
-            , style "border" "1px solid #bbb"
-            , style "border-radius" "8px"
-            , style "box-shadow" "0 1px 3px #0001"
+            [ style "width" "220px"
+            , style "height" "100px"
+            , style "margin" "12px"
+            , style "font-size" "3rem"
+            , style "border" "2px solid #bbb"
+            , style "border-radius" "20px"
+            , style "box-shadow" "0 3px 8px #0001"
             , style "cursor" "pointer"
             , style "user-select" "none"
             , style "touch-action" "manipulation"
@@ -215,7 +238,10 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Browser.Events.onKeyDown keyDecoder
+    Sub.batch
+        [ Browser.Events.onKeyDown keyDecoder
+        , Browser.Events.onResize (\w h -> WindowResized w h)
+        ]
 
 keyDecoder : Decode.Decoder Msg
 keyDecoder =
@@ -231,17 +257,29 @@ keyDecoder =
                     _ -> Decode.fail "Not an arrow key or pause"
             )
 
+-- Top-level function (already present):
+cellSize : Model -> Int
+cellSize model =
+    let
+        reservedSpace = 220
+        boardPx = Basics.min model.viewportWidth (model.viewportHeight - reservedSpace)
+    in
+    boardPx // model.width
+
 view : Model -> Html Msg
 view model =
     let
-        cellSize = 20
+        reservedSpace = 220
+        boardPx = Basics.min model.viewportWidth (model.viewportHeight - reservedSpace)
+        gridSize = model.width -- width == height
+        cellSizeVal = boardPx // gridSize
         headPos =
             case model.snake of
                 h :: _ -> Just h
                 [] -> Nothing
         cellStyle isHead =
-            [ style "width" (String.fromInt cellSize ++ "px")
-            , style "height" (String.fromInt cellSize ++ "px")
+            [ style "width" (String.fromInt cellSizeVal ++ "px")
+            , style "height" (String.fromInt cellSizeVal ++ "px")
             , style "display" "inline-block"
             , style "border" "1px solid #ccc"
             , style "box-sizing" "border-box"
@@ -272,23 +310,76 @@ view model =
             , style "background" "#fafbfc"
             ]
         infoBoxStyle =
-            [ style "padding" "4px 24px"
-            , style "background" "#f5f5f5"
+            [ style "background" "#f5f5f5"
             , style "border-radius" "6px"
             , style "box-shadow" "0 1px 3px #0001"
-            , style "min-width" "180px"
+            , style "padding" "0.5rem 1rem"
+            , style "width" "100%"
             , style "text-align" "center"
-            , style "font-family" "'Segoe UI', 'Roboto', 'Arial', sans-serif"
+            , style "font-size" "1rem"
             ]
+
         infoStackStyle =
-            [ style "margin" "18px 0 0 0"
-            , style "font-size" "18px"
+            [ style "width" "100%"
+            , style "max-width" "600px"
+            , style "margin" "2rem auto 0 auto"
+            , style "display" "flex"
+            , style "flex-direction" "column"
+            , style "gap" "0.3rem"
+            , style "align-items" "center"
+            ]
+
+        navGridStyle =
+            [ style "display" "grid"
+            , style "grid-template-columns" "repeat(3, 220px)"
+            , style "grid-template-rows" "repeat(2, 100px)"
+            , style "gap" "24px"
+            , style "justify-content" "center"
+            , style "margin" "0.5rem 0"
+            ]
+
+        navCellStyle =
+            [ style "display" "flex", style "align-items" "center", style "justify-content" "center" ]
+        pauseSymbol = if model.paused then "▶" else "⏸"
+        resetSymbol = "⟲"
+
+        containerStyle =
+            [ style "min-height" "100vh"
+            , style "width" "100vw"
             , style "display" "flex"
             , style "flex-direction" "column"
             , style "align-items" "center"
-            , style "gap" "12px"
-            , style "justify-content" "center"
+            , style "justify-content" "flex-start"
+            , style "background" "#fff"
+            , style "box-sizing" "border-box"
+            , style "padding" "0.2rem"
             ]
+
+        headerStyle =
+            [ style "font-size" "2rem"
+            , style "font-weight" "bold"
+            , style "margin" "0.5rem 0 0.2rem 0"
+            , style "text-align" "center"
+            ]
+
+        gameBoardStyle =
+            [ style "width" (String.fromInt boardPx ++ "px")
+            , style "height" (String.fromInt boardPx ++ "px")
+            , style "background" "#fff"
+            , style "border-radius" "10px"
+            , style "box-shadow" "0 4px 24px #0002"
+            , style "box-sizing" "border-box"
+            , style "margin" "0 auto"
+            ]
+
+        controlsStyle =
+            [ style "display" "flex"
+            , style "flex-direction" "column"
+            , style "align-items" "center"
+            , style "margin" "5rem 0 0.2rem 0"
+            , style "gap" "0.3rem"
+            ]
+
         collisionButtonStyle =
             [ style "margin" "24px 0 0 0"
             , style "font-size" "18px"
@@ -317,7 +408,7 @@ view model =
             in
             div (cellStyle isHead ++ [style "background-color" bgColor]) []
         renderRow y =
-            div [] (List.map (\x -> renderCell x y) (List.range 0 (model.width - 1)))
+            div [] (List.map (\x -> renderCell x y) (List.range 0 (gridSize - 1)))
         lengthAndCollision =
             let
                 snakeLen = List.length model.snake
@@ -342,40 +433,26 @@ view model =
             , style "transition" "background 0.2s"
             ]
         navButtonStyle dir =
-            [ style "width" "48px"
-            , style "height" "48px"
-            , style "margin" "4px"
-            , style "font-size" "2rem"
+            [ style "width" "72px"
+            , style "height" "72px"
+            , style "margin" "8px"
+            , style "font-size" "2.5rem"
             , style "background" (if model.dir == dir then "#2196F3" else "#f5f5f5")
             , style "color" (if model.dir == dir then "#fff" else "#222")
-            , style "border" "1px solid #bbb"
-            , style "border-radius" "8px"
-            , style "box-shadow" "0 1px 3px #0001"
+            , style "border" "1.5px solid #bbb"
+            , style "border-radius" "16px"
+            , style "box-shadow" "0 2px 6px #0001"
             , style "cursor" "pointer"
             , style "user-select" "none"
             , style "touch-action" "manipulation"
             ]
-        navGridStyle =
-            [ style "display" "grid"
-            , style "grid-template-columns" "repeat(3, 48px)"
-            , style "grid-template-rows" "repeat(2, 48px)"
-            , style "gap" "4px"
-            , style "justify-content" "center"
-            , style "margin" "12px auto 8px auto"
-            , style "max-width" "180px"
-            , style "width" "100%"
-            ]
-        navCellStyle =
-            [ style "display" "flex", style "align-items" "center", style "justify-content" "center" ]
-        pauseSymbol = if model.paused then "▶" else "⏸"
-        resetSymbol = "⟲"
     in
-    div outerContainerStyle
-        [ div boardContainerStyle
-            [ div titleStyle [ text "Elm Snake Game" ]
-            , div [ style "user-select" "none", style "margin-bottom" "18px" ]
-                (List.map renderRow (List.range 0 (model.height - 1)))
-            , div navGridStyle
+    div containerStyle
+        [ div headerStyle [ text "Elm Snake Game" ]
+        , div gameBoardStyle
+            [ div [ style "user-select" "none" ] (List.map renderRow (List.range 0 (gridSize - 1))) ]
+        , div controlsStyle
+            [ div navGridStyle
                 [ div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "1" ])
                     [ button (buttonStyle model PauseBtn ++ [onClick PauseResume]) [ text pauseSymbol ] ]
                 , div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "2" ])
@@ -394,7 +471,12 @@ view model =
                     [ button (collisionButtonStyle ++ [Html.Attributes.disabled True]) [ text "Collision!" ] ]
               else
                 text ""
-            , lengthAndCollision
+            ]
+        , div infoStackStyle
+            [ div infoBoxStyle [ text ("Snake length: " ++ String.fromInt (List.length model.snake)) ]
+            , div infoBoxStyle [ text ("High score: " ++ String.fromInt model.highScore) ]
+            , let speed = 1000 / (tickInterval (List.length model.snake)) in
+                div infoBoxStyle [ text ("Speed: " ++ String.fromFloat (roundTo1 speed) ++ " moves/sec") ]
             ]
         ]
 
