@@ -6347,6 +6347,10 @@ var $author$project$Main$buttonStyle = F2(
 						]));
 		}
 	});
+var $elm$core$Basics$clamp = F3(
+	function (low, high, number) {
+		return (_Utils_cmp(number, low) < 0) ? low : ((_Utils_cmp(number, high) > 0) ? high : number);
+	});
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
@@ -6456,6 +6460,8 @@ var $author$project$Main$view = function (model) {
 				A2($elm$html$Html$Attributes$style, 'touch-action', 'manipulation')
 			]);
 	};
+	var minFont = 1.1;
+	var maxFont = 2.2;
 	var infoStackStyle = _List_fromArray(
 		[
 			A2($elm$html$Html$Attributes$style, 'width', '100%'),
@@ -6530,6 +6536,18 @@ var $author$project$Main$view = function (model) {
 		}
 	}();
 	var gridSize = model.width;
+	var fontSize = function () {
+		var px = model.viewportWidth;
+		var scaled = 1.1 + (((A2($elm$core$Basics$min, px, 600) - 320) / 280) * (maxFont - minFont));
+		return $elm$core$String$fromFloat(
+			A3($elm$core$Basics$clamp, minFont, maxFont, scaled)) + 'rem';
+	}();
+	var infoBoxStyleAdaptive = _Utils_ap(
+		infoBoxStyle,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'font-size', fontSize)
+			]));
 	var controlsStyle = _List_fromArray(
 		[
 			A2($elm$html$Html$Attributes$style, 'display', 'flex'),
@@ -6879,7 +6897,7 @@ var $author$project$Main$view = function (model) {
 					[
 						A2(
 						$elm$html$Html$div,
-						infoBoxStyle,
+						infoBoxStyleAdaptive,
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
@@ -6888,7 +6906,7 @@ var $author$project$Main$view = function (model) {
 							])),
 						A2(
 						$elm$html$Html$div,
-						infoBoxStyle,
+						infoBoxStyleAdaptive,
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
@@ -6899,7 +6917,7 @@ var $author$project$Main$view = function (model) {
 							$elm$core$List$length(model.snake));
 						return A2(
 							$elm$html$Html$div,
-							infoBoxStyle,
+							infoBoxStyleAdaptive,
 							_List_fromArray(
 								[
 									$elm$html$Html$text(

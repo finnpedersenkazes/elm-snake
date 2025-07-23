@@ -448,6 +448,17 @@ view model =
             , style "user-select" "none"
             , style "touch-action" "manipulation"
             ]
+        -- Calculate adaptive font size for info boxes
+        minFont = 1.1
+        maxFont = 2.2
+        fontSize =
+            let
+                px = toFloat model.viewportWidth
+                -- scale between 1.1rem (320px) and 2.2rem (600px+)
+                scaled = 1.1 + ((min px 600 - 320) / 280) * (maxFont - minFont)
+            in
+            String.fromFloat (Basics.clamp minFont maxFont scaled) ++ "rem"
+        infoBoxStyleAdaptive = infoBoxStyle ++ [ style "font-size" fontSize ]
     in
     div containerStyle
         [ div headerStyle [ text "Elm Snake Game" ]
@@ -475,10 +486,10 @@ view model =
                 text ""
             ]
         , div infoStackStyle
-            [ div infoBoxStyle [ text ("Snake length: " ++ String.fromInt (List.length model.snake)) ]
-            , div infoBoxStyle [ text ("High score: " ++ String.fromInt model.highScore) ]
+            [ div infoBoxStyleAdaptive [ text ("Snake length: " ++ String.fromInt (List.length model.snake)) ]
+            , div infoBoxStyleAdaptive [ text ("High score: " ++ String.fromInt model.highScore) ]
             , let speed = 1000 / (tickInterval (List.length model.snake)) in
-                div infoBoxStyle [ text ("Speed: " ++ String.fromFloat (roundTo1 speed) ++ " moves/sec") ]
+                div infoBoxStyleAdaptive [ text ("Speed: " ++ String.fromFloat (roundTo1 speed) ++ " moves/sec") ]
             ]
         ]
 
