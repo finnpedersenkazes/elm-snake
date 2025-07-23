@@ -6401,7 +6401,7 @@ var $author$project$Main$view = function (model) {
 		]);
 	var resetSymbol = '⟲';
 	var reservedSpace = 220;
-	var pauseSymbol = model.paused ? '▶' : '⏸';
+	var pauseSymbol = model.paused ? '>' : '||';
 	var pauseButtonStyle = _List_fromArray(
 		[
 			A2($elm$html$Html$Attributes$style, 'margin', '24px 0 0 12px'),
@@ -6486,7 +6486,8 @@ var $author$project$Main$view = function (model) {
 			A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
 			A2($elm$html$Html$Attributes$style, 'font-size', '1.35rem'),
 			A2($elm$html$Html$Attributes$style, 'margin-bottom', '1.1rem'),
-			A2($elm$html$Html$Attributes$style, 'font-weight', '500')
+			A2($elm$html$Html$Attributes$style, 'font-weight', '500'),
+			A2($elm$html$Html$Attributes$style, 'font-family', '\'Segoe UI\', \'Roboto\', \'Arial\', sans-serif')
 		]);
 	var lengthAndCollision = function () {
 		var snakeLen = $elm$core$List$length(model.snake);
@@ -6525,10 +6526,13 @@ var $author$project$Main$view = function (model) {
 	}();
 	var headerStyle = _List_fromArray(
 		[
-			A2($elm$html$Html$Attributes$style, 'font-size', '2rem'),
-			A2($elm$html$Html$Attributes$style, 'font-weight', 'bold'),
-			A2($elm$html$Html$Attributes$style, 'margin', '0.5rem 0 0.2rem 0'),
-			A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+			A2($elm$html$Html$Attributes$style, 'font-size', '2.8rem'),
+			A2($elm$html$Html$Attributes$style, 'font-weight', '900'),
+			A2($elm$html$Html$Attributes$style, 'margin', '0.7rem 0 0.3rem 0'),
+			A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+			A2($elm$html$Html$Attributes$style, 'font-family', '\'Segoe UI\', \'Roboto\', \'Arial\', sans-serif'),
+			A2($elm$html$Html$Attributes$style, 'letter-spacing', '.04em'),
+			A2($elm$html$Html$Attributes$style, 'text-shadow', '0 2px 8px #0001')
 		]);
 	var headPos = function () {
 		var _v1 = model.snake;
@@ -6577,7 +6581,8 @@ var $author$project$Main$view = function (model) {
 			A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
 			A2($elm$html$Html$Attributes$style, 'background', '#fff'),
 			A2($elm$html$Html$Attributes$style, 'box-sizing', 'border-box'),
-			A2($elm$html$Html$Attributes$style, 'padding', '0.2rem')
+			A2($elm$html$Html$Attributes$style, 'padding', '0.2rem'),
+			A2($elm$html$Html$Attributes$style, 'font-family', '\'Segoe UI\', \'Roboto\', \'Arial\', sans-serif')
 		]);
 	var collisionButtonStyle = _List_fromArray(
 		[

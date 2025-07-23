@@ -321,6 +321,7 @@ view model =
             , style "font-size" "1.35rem"
             , style "margin-bottom" "1.1rem"
             , style "font-weight" "500"
+            , style "font-family" "'Segoe UI', 'Roboto', 'Arial', sans-serif"
             ]
 
         infoStackStyle =
@@ -344,7 +345,7 @@ view model =
 
         navCellStyle =
             [ style "display" "flex", style "align-items" "center", style "justify-content" "center" ]
-        pauseSymbol = if model.paused then "▶" else "⏸"
+        pauseSymbol = if model.paused then ">" else "||"
         resetSymbol = "⟲"
 
         containerStyle =
@@ -357,13 +358,17 @@ view model =
             , style "background" "#fff"
             , style "box-sizing" "border-box"
             , style "padding" "0.2rem"
+            , style "font-family" "'Segoe UI', 'Roboto', 'Arial', sans-serif"
             ]
 
         headerStyle =
-            [ style "font-size" "2rem"
-            , style "font-weight" "bold"
-            , style "margin" "0.5rem 0 0.2rem 0"
+            [ style "font-size" "2.8rem"
+            , style "font-weight" "900"
+            , style "margin" "0.7rem 0 0.3rem 0"
             , style "text-align" "center"
+            , style "font-family" "'Segoe UI', 'Roboto', 'Arial', sans-serif"
+            , style "letter-spacing" ".04em"
+            , style "text-shadow" "0 2px 8px #0001"
             ]
 
         gameBoardStyle =
