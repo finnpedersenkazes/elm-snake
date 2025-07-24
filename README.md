@@ -12,6 +12,7 @@ This is a classic Snake game implemented in Elm, inspired by the version found o
 - If you collide with yourself, you'll see a red "Collision!" warning and your snake will shrink.
 - The snake wraps around the grid edges.
 - The blue square is the head of the snake.
+- Change the game size with the button below. 
 
 ## 2. Getting Started
 
