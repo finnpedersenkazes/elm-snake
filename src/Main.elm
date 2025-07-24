@@ -1,8 +1,8 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, div, text, button)
-import Html.Attributes exposing (style, class)
+import Html exposing (Html, div, text, button, node)
+import Html.Attributes exposing (style, class, attribute, id)
 import Html.Events exposing (onClick, on)
 import Random
 import Browser.Events
@@ -38,8 +38,6 @@ type alias Model =
     , collisionWarningSteps : Int
     , highScore : Int
     , paused : Bool
-    , viewportWidth : Int
-    , viewportHeight : Int
     , deviceMode : DeviceMode
     }
 
@@ -49,8 +47,8 @@ init _ =
     let
         initialSnake = List.map (\i -> { x = 5 - i, y = 5 }) (List.range 0 2)
         initialDir = Right
-        w = 12
-        h = 20
+        w = 15
+        h = 15
         initialFood = { x = 7, y = 7 }
     in
     ( { snake = initialSnake
@@ -62,11 +60,9 @@ init _ =
       , collisionWarningSteps = 0
       , highScore = 3
       , paused = False
-      , viewportWidth = 360
-      , viewportHeight = 640
       , deviceMode = Mobile
       }
-    , Browser.Dom.getViewport |> Task.perform (\vp -> GotViewport (round vp.viewport.width) (round vp.viewport.height))
+    , tickCmd 3
     )
 
 -- Msg
@@ -77,8 +73,6 @@ type Msg
     | Restart
     | NewFood Position
     | PauseResume
-    | GotViewport Int Int
-    | WindowResized Int Int
     | SetDeviceMode DeviceMode
 
 -- Timer
@@ -108,6 +102,19 @@ foodGenerator w h =
     Random.map2 Position (Random.int 0 (w - 1)) (Random.int 0 (h - 1))
 
 -- Update
+
+-- Helper to create a new snake within bounds
+newSnake : Int -> Int -> List Position
+newSnake w h =
+    let
+        y = h // 2
+    in
+    List.map (\i -> { x = (w // 2) - i, y = y }) (List.range 0 2)
+
+-- Helper to create a new food within bounds
+newFood : Int -> Int -> Position
+newFood w h =
+    { x = w // 2, y = h // 2 }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -160,43 +167,16 @@ update msg model =
             ( { model | food = pos }, tickCmd (List.length model.snake) )
         PauseResume ->
             ( { model | paused = not model.paused }, Cmd.none )
-        GotViewport w h ->
-            let
-                minCellPx = 18
-                autoMode = if w < 700 then Mobile else PC
-                (maxW, maxH) =
-                    case autoMode of
-                        Mobile -> (15, 20)
-                        PC -> (20, 20)
-                width = Basics.min maxW (w // minCellPx)
-                height = Basics.min maxH ((h - 220) // minCellPx)
-                newModel = { model | viewportWidth = w, viewportHeight = h, width = width, height = height, deviceMode = autoMode }
-            in
-            ( newModel, tickCmd (List.length newModel.snake) )
-        WindowResized w h ->
-            let
-                minCellPx = 18
-                autoMode = if w < 700 then Mobile else PC
-                (maxW, maxH) =
-                    case autoMode of
-                        Mobile -> (15, 20)
-                        PC -> (20, 20)
-                width = Basics.min maxW (w // minCellPx)
-                height = Basics.min maxH ((h - 220) // minCellPx)
-                newModel = { model | viewportWidth = w, viewportHeight = h, width = width, height = height, deviceMode = autoMode }
-            in
-            ( newModel, tickCmd (List.length newModel.snake) )
         SetDeviceMode mode ->
             let
-                minCellPx = 18
-                (maxW, maxH) =
+                (width, height) =
                     case mode of
-                        Mobile -> (15, 20)
+                        Mobile -> (15, 15)
                         PC -> (20, 20)
-                width = Basics.min maxW (model.viewportWidth // minCellPx)
-                height = Basics.min maxH ((model.viewportHeight - 220) // minCellPx)
+                snake = newSnake width height
+                food = newFood width height
             in
-            ( { model | deviceMode = mode, width = width, height = height }, Cmd.none )
+            ( { model | deviceMode = mode, width = width, height = height, snake = snake, food = food, dir = Right, gameOver = False, paused = False }, Cmd.none )
 
 -- Change moveHead to take width and height as arguments
 moveHead : Int -> Int -> Position -> Direction -> Position
@@ -268,9 +248,9 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Browser.Events.onKeyDown keyDecoder
-        , Browser.Events.onResize (\w h -> WindowResized w h)
         ]
 
+-- In the keyDecoder, prevent default for arrow keys
 keyDecoder : Decode.Decoder Msg
 keyDecoder =
     Decode.field "key" Decode.string
@@ -286,28 +266,17 @@ keyDecoder =
             )
 
 -- Top-level function (already present):
-cellSize : Model -> Int
-cellSize model =
-    let
-        reservedSpace = 220
-        boardPx = Basics.min model.viewportWidth (model.viewportHeight - reservedSpace)
-    in
-    boardPx // model.width
-
 view : Model -> Html Msg
 view model =
     let
-        reservedSpace = 220
-        boardPx = model.viewportWidth
         gridSize = model.width
-        cellSizeVal = boardPx // gridSize
         headPos =
             case model.snake of
                 h :: _ -> Just h
                 [] -> Nothing
         cellStyle isHead =
-            [ style "width" (String.fromInt cellSizeVal ++ "px")
-            , style "height" (String.fromInt cellSizeVal ++ "px")
+            [ style "flex" "1 1 0"
+            , style "aspect-ratio" "1/1"
             , style "display" "inline-block"
             , style "border" "1px solid #ccc"
             , style "box-sizing" "border-box"
@@ -399,8 +368,9 @@ view model =
             ]
 
         gameBoardStyle =
-            [ style "width" (String.fromInt boardPx ++ "px")
-            , style "height" (String.fromInt boardPx ++ "px")
+            [ style "width" "100%"
+            , style "max-width" "420px"
+            , style "aspect-ratio" "1/1"
             , style "background" "#fff"
             , style "border-radius" "10px"
             , style "box-shadow" "0 4px 24px #0002"
@@ -444,7 +414,7 @@ view model =
             in
             div (cellStyle isHead ++ [style "background-color" bgColor]) []
         renderRow y =
-            div [] (List.map (\x -> renderCell x y) (List.range 0 (gridSize - 1)))
+            div [ style "display" "flex", style "flex" "1 1 0" ] (List.map (\x -> renderCell x y) (List.range 0 (gridSize - 1)))
         lengthAndCollision =
             let
                 snakeLen = List.length model.snake
@@ -487,48 +457,50 @@ view model =
         maxFont = 2.2
         fontSize =
             let
-                px = toFloat model.viewportWidth
+                px = toFloat model.width
                 pxClamped = Basics.max 320 (Basics.min (round px) 600)
                 scaled = minFont + ((toFloat (pxClamped - 320)) / 280) * (maxFont - minFont)
             in
             String.fromFloat (Basics.clamp minFont maxFont scaled) ++ "rem"
         infoBoxStyleAdaptive = infoBoxStyle ++ [ style "font-size" fontSize ]
     in
-    div containerStyle
-        [ div headerStyle [ text "Elm Snake Game" ]
-        , div [ style "width" "100vw", style "max-width" "100vw", style "margin" "0", style "padding" "0" ]
-            [ div [ style "user-select" "none" ] (List.map renderRow (List.range 0 (gridSize - 1))) ]
-        , div controlsStyle
-            [ div navGridStyle
-                [ div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "1" ])
-                    [ button (buttonStyle model PauseBtn model.paused ++ [onClick PauseResume]) [ text pauseSymbol ] ]
-                , div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "2" ])
-                    [ button (buttonStyle model (NavBtn Up) (model.dir == Up) ++ [onClick (ChangeDir Up)]) [ text "↑" ] ]
-                , div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "3" ])
-                    [ button (buttonStyle model ResetBtn (not model.paused) ++ [ Html.Attributes.disabled (not model.paused), onClick Restart ]) [ text resetSymbol ] ]
-                , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "1" ])
-                    [ button (buttonStyle model (NavBtn Left) (model.dir == Left) ++ [onClick (ChangeDir Left)]) [ text "←" ] ]
-                , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "2" ])
-                    [ button (buttonStyle model (NavBtn Down) (model.dir == Down) ++ [onClick (ChangeDir Down)]) [ text "↓" ] ]
-                , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "3" ])
-                    [ button (buttonStyle model (NavBtn Right) (model.dir == Right) ++ [onClick (ChangeDir Right)]) [ text "→" ] ]
+    div []
+        [ node "style" [] [ text "html, body { overflow-x: hidden !important; width: 100vw; margin: 0; padding: 0; }" ]
+        , node "style" [] [ text ".board-container { margin: 16px auto; width: 420px; max-width: 100vw; }" ]
+        , div containerStyle
+            [ div headerStyle [ text "Elm Snake Game" ]
+            , div [ id "snake-board-container", style "margin" "0", style "padding" "0" ]
+                [ div [ id "snake-board", style "user-select" "none" ] (List.map renderRow (List.range 0 (gridSize - 1))) ]
+            , div controlsStyle
+                [ div navGridStyle
+                    [ div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "1" ])
+                        [ button (buttonStyle model PauseBtn model.paused ++ [onClick PauseResume]) [ text pauseSymbol ] ]
+                    , div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "2" ])
+                        [ button (buttonStyle model (NavBtn Up) (model.dir == Up) ++ [onClick (ChangeDir Up)]) [ text "↑" ] ]
+                    , div (navCellStyle ++ [ style "grid-row" "1", style "grid-column" "3" ])
+                        [ button (buttonStyle model ResetBtn (not model.paused) ++ [ Html.Attributes.disabled (not model.paused), onClick Restart ]) [ text resetSymbol ] ]
+                    , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "1" ])
+                        [ button (buttonStyle model (NavBtn Left) (model.dir == Left) ++ [onClick (ChangeDir Left)]) [ text "←" ] ]
+                    , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "2" ])
+                        [ button (buttonStyle model (NavBtn Down) (model.dir == Down) ++ [onClick (ChangeDir Down)]) [ text "↓" ] ]
+                    , div (navCellStyle ++ [ style "grid-row" "2", style "grid-column" "3" ])
+                        [ button (buttonStyle model (NavBtn Right) (model.dir == Right) ++ [onClick (ChangeDir Right)]) [ text "→" ] ]
+                    ]
+                , if model.collisionWarningSteps > 0 then
+                    div [ style "display" "flex", style "justify-content" "center", style "margin-top" "8px" ]
+                        [ button (collisionButtonStyle ++ [Html.Attributes.disabled True]) [ text "Collision!" ] ]
+                  else
+                    text ""
                 ]
-            , if model.collisionWarningSteps > 0 then
-                div [ style "display" "flex", style "justify-content" "center", style "margin-top" "8px" ]
-                    [ button (collisionButtonStyle ++ [Html.Attributes.disabled True]) [ text "Collision!" ] ]
-              else
-                text ""
-            ]
-        , div infoStackStyle
-            [ div infoBoxStyleAdaptive [ text ("Snake length: " ++ String.fromInt (List.length model.snake)) ]
-            , div infoBoxStyleAdaptive [ text ("High score: " ++ String.fromInt model.highScore) ]
-            , let speed = 1000 / (tickInterval (List.length model.snake)) in
-                div infoBoxStyleAdaptive [ text ("Speed: " ++ String.fromFloat (roundTo1 speed) ++ " moves/sec") ]
-            , div infoBoxStyleAdaptive [ text ("Screen: " ++ String.fromInt model.viewportWidth ++ " x " ++ String.fromInt model.viewportHeight) ]
-            ]
-        , div [ style "display" "flex", style "justify-content" "center", style "margin" "2rem 0 1.5rem 0", style "width" "100%" ]
-            [ button (buttonStyle model ResetBtn False ++ [ style "width" "100%", style "max-width" "600px", onClick (SetDeviceMode (if model.deviceMode == Mobile then PC else Mobile)) ])
-                [ text (if model.deviceMode == Mobile then "Switch to PC mode" else "Switch to Mobile mode") ]
+            , div infoStackStyle
+                [ div infoBoxStyleAdaptive [ text ("Snake length: " ++ String.fromInt (List.length model.snake) ++ " - High score: " ++ String.fromInt model.highScore) ]
+                , let speed = 1000 / (tickInterval (List.length model.snake)) in
+                    div infoBoxStyleAdaptive [ text ("Speed: " ++ String.fromFloat (roundTo1 speed) ++ " moves/sec") ]
+                , div [ id "snake-mode-switch", style "display" "flex", style "justify-content" "center", style "margin" "2rem 0 1.5rem 0", style "width" "100%" ]
+                    [ button (buttonStyle model ResetBtn False ++ [ style "width" "100%", style "max-width" "600px", onClick (SetDeviceMode (if model.deviceMode == Mobile then PC else Mobile)) ])
+                        [ text (String.fromInt model.width ++ " x " ++ String.fromInt model.height) ]
+                    ]
+                ]
             ]
         ]
 
